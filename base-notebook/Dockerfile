@@ -17,10 +17,12 @@ USER root
 
 # Install all OS dependencies for notebook server that starts but lacks all
 # features (e.g., download as all possible file formats)
+# (JIA) included vim
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update \
  && apt-get install -yq --no-install-recommends \
     wget \
+    vim \
     bzip2 \
     ca-certificates \
     sudo \
@@ -71,10 +73,10 @@ ARG PYTHON_VERSION=default
 RUN mkdir /home/$NB_USER/work && \
     fix-permissions /home/$NB_USER
 
-# Install conda as jovyan and check the md5 sum provided on the download site
+# Install conda as jovyan and check the md5 sum provided on the download site. (JIA) conda version changed from 4.8.2 --> 4.8.3
 ENV MINICONDA_VERSION=4.8.2 \
     MINICONDA_MD5=87e77f097f6ebb5127c77662dfc3165e \
-    CONDA_VERSION=4.8.2
+    CONDA_VERSION=4.8.3
 
 RUN cd /tmp && \
     wget --quiet https://repo.continuum.io/miniconda/Miniconda3-py37_${MINICONDA_VERSION}-Linux-x86_64.sh && \
@@ -109,14 +111,17 @@ RUN conda install --quiet --yes 'tini=0.18.0' && \
 # Correct permissions
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
+# (JIA) jupyterlab changed from 2.0.1 --> 1.2.7
+# (JIA) install vim for jupyterlab
 RUN conda install --quiet --yes \
     'notebook=6.0.3' \
     'jupyterhub=1.1.0' \
-    'jupyterlab=2.0.1' && \
+    'jupyterlab=1.2.7' && \
     conda clean --all -f -y && \
     npm cache clean --force && \
     jupyter notebook --generate-config && \
-    rm -rf $CONDA_DIR/share/jupyter/lab/staging && \
+    jupyter labextension install jupyterlab_vim && \
+    jupyter lab clean && \
     rm -rf /home/$NB_USER/.cache/yarn && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
